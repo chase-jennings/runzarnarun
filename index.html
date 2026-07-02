@@ -21,7 +21,8 @@ let VW=BASE_W, VH=BASE_H, ZOOM=2;
 
 // ============ OPTIONAL REAL ARTWORK (auto-used if committed to repo) ============
 const ART={};
-['title','family'].forEach(n=>{const im=new Image();im.onload=()=>{ART[n]=im;};im.src='art/'+n+'.png?v=1';});
+// title = repo-root intro2.png; family (optional) = repo-root family.png
+[['title','intro2.png?v=1'],['family','family.png?v=1']].forEach(([n,src])=>{const im=new Image();im.onload=()=>{ART[n]=im;};im.src=src;});
 function drawCover(im){
   const s=Math.max(VW/im.width,VH/im.height), w=im.width*s, h=im.height*s;
   cx.drawImage(im,(VW-w)/2,(VH-h)/2,w,h);
@@ -751,9 +752,9 @@ for(let x=0;x<LW;x++){
 }
 // scaffolding (one-way platforms)
 function scaff(x0,x1,row){for(let x=x0;x<=x1;x++)setT(x,row,3);}
-scaff(30,36,7); scaff(89,93,7); scaff(65,70,7); scaff(67,69,4); scaff(108,114,7); scaff(111,113,4); scaff(155,160,7);
+scaff(30,36,8); scaff(89,93,8); scaff(65,70,8); scaff(67,69,6); scaff(108,114,8); scaff(111,113,6); scaff(155,160,8);
 // gift boxes (?) and crates
-[[13,6],[31,4],[48,6],[68,1],[83,6],[112,1],[122,6],[144,6],[158,4],[171,6]].forEach(([x,y])=>setT(x,y,4));
+[[13,6],[31,6],[48,6],[68,6],[83,6],[112,6],[122,6],[144,6],[158,6],[171,6]].forEach(([x,y])=>setT(x,y,4));
 [[26,9],[26,8],[57,9],[86,9],[86,8],[87,9],[133,9],[168,9],[168,8]].forEach(([x,y])=>setT(x,y,5));
 // end brownstone (solid wall segment at end, door drawn over)
 for(let x=185;x<LW;x++)for(let y=3;y<GROUND;y++)setT(x,y,2);
@@ -763,13 +764,11 @@ function spawnEntities(){
   const es=[];
   const A=(t,x,y,ex)=>es.push(Object.assign({type:t,x:x*TILE,y:y*TILE,vx:0,vy:0,dead:false,t:0},ex));
   // aunties: patrol
-  [[26,'r'],[74,'r'],[120,'l'],[160,'l']].forEach(([x,d])=>A('aunt',x,GROUND-2,{dir:d==='l'?-1:1,w:12,h:20,oy:0}));
+  [[26,'r'],[90,'l'],[150,'l']].forEach(([x,d])=>A('aunt',x,GROUND-2,{dir:d==='l'?-1:1,w:12,h:20,oy:0}));
   // pigeons on wires
-  [[71,0],[147,0]].forEach(([x])=>A('pig',x,0,{y:GROUND*TILE-86,w:10,h:8,mode:'sit',homeY:GROUND*TILE-86}));
+  [[110,0]].forEach(([x])=>A('pig',x,0,{y:GROUND*TILE-86,w:10,h:8,mode:'sit',homeY:GROUND*TILE-86}));
   // rats
-  [[80,GROUND-1],[166,GROUND-1]].forEach(([x,y])=>A('rat',x,y,{dir:-1,w:13,h:8,oy:0}));
-  // uncles
-  [[100,(GROUND*TILE-20)/TILE]].forEach(([x,y])=>A('uncle',x,y,{w:12,h:20,oy:0,cool:120}));
+  [[70,GROUND-1]].forEach(([x,y])=>A('rat',x,y,{dir:-1,w:13,h:8,oy:0}));
   // pickups on ground/scaffolds: pineapples
   const pines=[[10,8],[16,8],[22,8],[31,6],[33,6],[35,6],[44,7],[45,6],[46,6],[47,7],[63,8],[66,6],[68,3],[76,8],[89,6],[91,5],[93,6],[99,8],[109,6],[112,3],[119,8],[124,8],[129,7],[139,7],[141,7],[146,8],[156,6],[158,6],[162,8],[170,8],[176,8],[179,8]];
   pines.forEach(([x,y])=>A('pine',x,y,{w:8,h:10}));
@@ -796,7 +795,7 @@ const T_MAN=makeTile(g=>{g.fillStyle='#15161a';g.fillRect(0,0,16,16);g.fillStyle
 // ============ GAME STATE ============
 let state='TITLE', frame=0, sceneT=0;
 let player, ents, pans, rotis, taxis, waves, pops, parts, mil;
-let score=0, pineCount=0, hearts=3, best=+(localStorage.getItem('zarnaBest')||0);
+let score=0, pineCount=0, hearts=5, best=+(localStorage.getItem('zarnaBest')||0);
 let lastCP=-1, camX=0, camY=0, lastSafe={x:32,y:GROUND*TILE-24};
 let micT=0, chaiT=0, invT=0, giantT=0, pineMeter=0, levelTime=0, giftBoxes={}, brokenCrates={};
 let milBubble=null; // {text,x,y,t}
@@ -805,14 +804,14 @@ function resetRun(fromCP){
   ents=spawnEntities();pans=[];rotis=[];waves=[];pops=[];parts=[];taxis=[];mil=null;milBubble=null;
   roads.forEach((r,i)=>taxis.push({road:r,x:(r[1]+3+i*7)*TILE,w:28,h:14,horned:false}));
   milSwoops.forEach(s=>s.done=false);
-  micT=0;chaiT=0;invT=0;giantT=0;pineMeter=0;hearts=3;
+  micT=0;chaiT=0;invT=0;giantT=0;pineMeter=0;hearts=5;
   const sx=fromCP>=0?checkpoints[fromCP].x:32;
   player=newPlayer(sx,GROUND*TILE-24);
   lastSafe={x:sx,y:GROUND*TILE-24};
   // clear ents already passed if from checkpoint? keep all: they respawn (forgiving anyway)
   if(fromCP<0){score=0;pineCount=0;levelTime=0;giftBoxes={};brokenCrates={};
     // restore boxes/crates in map
-    [[13,6],[31,4],[48,6],[68,1],[83,6],[112,1],[122,6],[144,6],[158,4],[171,6]].forEach(([x,y])=>setT(x,y,4));
+    [[13,6],[31,6],[48,6],[68,6],[83,6],[112,6],[122,6],[144,6],[158,6],[171,6]].forEach(([x,y])=>setT(x,y,4));
     [[26,9],[26,8],[57,9],[86,9],[86,8],[87,9],[133,9],[168,9],[168,8]].forEach(([x,y])=>setT(x,y,5));
     checkpoints.forEach(c=>c.used=false);lastCP=-1;
   }
@@ -827,17 +826,17 @@ function bonk(e,how){
 }
 function hurtPlayer(){
   if(invT>0||micT>0||giantT>0)return;
-  hearts--;SFX.hurt();invT=140;
+  hearts--;SFX.hurt();invT=150;
   player.vy=-3;player.vx=player.dir*-1.5;
   puff(player.x+5,player.y+8,'#ff3355',8);
   if(hearts<=0){state='GAMEOVER';sceneT=0;setTrack(null);}
 }
-function gainHeart(){if(hearts<3){hearts++;addPop(player.x,player.y-14,'+HEART','#ff3355');}}
+function gainHeart(){if(hearts<5){hearts++;addPop(player.x,player.y-14,'+HEART','#ff3355');}}
 function collectPine(){
   pineCount++;score+=50;SFX.ding();
   if(pineCount%10===0){gainHeart();}
   pineMeter++;
-  if(pineMeter>=5&&giantT<=0){
+  if(pineMeter>=3&&giantT<=0){
     pineMeter=0;giantT=480;SFX.powerup();setTrack(TR_GIANT);
     addPop(player.x,player.y-18,'GIANT ZARNA!','#ffd23f');
   }
@@ -904,8 +903,8 @@ function updatePlay(){
   if(jumpPressed){p.jbuf=8;jumpPressed=false;}
   else if(p.jbuf>0)p.jbuf--;
   if(p.grounded)p.coyote=7;else if(p.coyote>0)p.coyote--;
-  if(p.jbuf>0&&p.coyote>0){p.vy=-4.7;p.coyote=0;p.jbuf=0;p.grounded=false;SFX.jump();}
-  if(!inputJumpHeld()&&p.vy<-1.8)p.vy=-1.8; // variable height
+  if(p.jbuf>0&&p.coyote>0){p.vy=-5.1;p.coyote=0;p.jbuf=0;p.grounded=false;SFX.jump();}
+  if(!inputJumpHeld()&&p.vy<-2.0)p.vy=-2.0; // variable height
   p.vy=Math.min(p.vy+0.24,5);
   const r=moveEntity(p);
   p.grounded=r.onGround;
@@ -916,10 +915,7 @@ function updatePlay(){
     const txc=Math.floor((p.x+p.w/2)/TILE);
     if(T(txc,GROUND)===1&&frame%20===0){lastSafe={x:p.x,y:p.y};}
   }
-  // manhole hazard: feet in manhole tile
-  const ftx=Math.floor((p.x+p.w/2)/TILE), fty=Math.floor((p.y+p.h+1)/TILE);
-  if(T(ftx,fty)===7&&p.y+p.h>GROUND*TILE+2){hurtPlayer();p.y=GROUND*TILE-p.h-2;p.vy=-3.5;}
-  // fell in gap
+  // safety net (should not trigger — ground is continuous)
   if(p.y>LH*TILE+20){hurtPlayer();if(hearts>0){p.x=lastSafe.x;p.y=lastSafe.y;p.vx=0;p.vy=0;invT=90;}}
   // fire pan
   if(firePressed){
@@ -968,7 +964,7 @@ function updatePlay(){
   rotis=rotis.filter(rt=>!rt.gone);
   // taxis
   for(const tx of taxis){
-    tx.x-=0.6;
+    tx.x-=0.5;
     if(tx.x<(tx.road[0]-4)*TILE){tx.x=(tx.road[1]+3)*TILE;tx.horned=false;}
     const ty=GROUND*TILE-14;
     if(!tx.horned&&Math.abs(tx.x-p.x)<110&&Math.abs(p.y-ty)<40){tx.horned=true;SFX.horn();}
@@ -1016,10 +1012,6 @@ function updatePlay(){
       const ahead=Math.floor((e.x+e.w/2+e.dir*10)/TILE);
       if(er.onGround&&!SOLID(T(ahead,GROUND))&&T(ahead,GROUND)!==3)e.dir*=-1;
       if(near&&frame%120===((e.x|0)%120))SFX.squeak();
-    }else if(e.type==='uncle'){
-      if(micT<=0){e.cool--;
-        if(e.cool<=0&&adx<110){e.cool=210;waves.push({x:e.x+e.w/2,y:GROUND*TILE,dir:dx>0?1:-1,t:0});}
-      }
     }
     // player vs enemy
     if(e.type!=='pine'&&e.type!=='chai'&&e.type!=='samosa'&&e.type!=='mic'){
@@ -1047,12 +1039,6 @@ function updatePlay(){
     }
   }
   ents=ents.filter(e=>!e.gone);
-  // waves
-  for(const w of waves){
-    w.t++;w.x+=w.dir*0.5;
-    if(micT<=0&&Math.abs(w.x-(p.x+p.w/2))<8&&p.y+p.h>GROUND*TILE-14)hurtPlayer();
-  }
-  waves=waves.filter(w=>w.t<220);
   // popups & particles
   for(const o of pops)o.t++;
   pops=pops.filter(o=>o.t<50);
@@ -1160,17 +1146,6 @@ const HYDRANTS=[18,41,82,103,143,169];
 const HOTDOG=[28,96,161];
 function drawProps(){
   const gy=GROUND*TILE-camY;
-  // subway grates on sidewalk
-  cx.fillStyle='#6a707a';
-  for(let x=6;x<LW;x+=17){
-    if(isRoad(x)||gaps.some(g=>x>=g[0]-1&&x<=g[1]))continue;
-    const sx=x*TILE-camX;
-    if(sx<-40||sx>VW+40)continue;
-    cx.fillRect(sx,gy+2,26,5);
-    cx.fillStyle='#2a2e34';
-    for(let i=2;i<25;i+=4)cx.fillRect(sx+i,gy+3,2,3);
-    cx.fillStyle='#6a707a';
-  }
   for(const hx of HYDRANTS){
     const sx=hx*TILE-camX; if(sx<-20||sx>VW+20)continue;
     cx.fillStyle='#d02020';cx.fillRect(sx+4,gy-9,6,9);cx.fillRect(sx+2,gy-6,10,3);cx.fillRect(sx+5,gy-11,4,2);
@@ -1283,14 +1258,7 @@ function drawEnts(){
     if(e.type==='aunt')drawSprite(frame%32<16?AUNT1:AUNT2,e.x,e.y+(e.oy||0),e.dir>0,rot);
     else if(e.type==='pig')drawSprite((e.mode==='sit'?(frame%40<20?PIG1:PIG1):(frame%10<5?PIG1:PIG2)),e.x,e.y,e.x+e.w/2<player.x,rot);
     else if(e.type==='rat')drawSprite(frame%16<8?RAT1:RAT2,e.x,e.y,e.dir>0,rot);
-    else if(e.type==='uncle'){drawSprite(UNCLE,e.x,e.y+(e.oy||0),player.x<e.x,rot);}
     if(e.dead){cx.fillStyle='#fff';const sx=e.x-camX,sy=e.y-camY;for(let i=0;i<3;i++)cx.fillRect(sx+6+Math.cos(e.bonkT*0.3+i*2.1)*8,sy-2+Math.sin(e.bonkT*0.3+i*2.1)*4,2,2);}
-  }
-  for(const w of waves){
-    const sx=w.x-camX, gy=GROUND*TILE-camY;
-    cx.strokeStyle='rgba(120,80,160,'+(0.9-w.t/260)+')';
-    cx.beginPath();cx.arc(sx,gy,7+Math.sin(w.t*0.2)*2,Math.PI,0);cx.stroke();
-    cx.beginPath();cx.arc(sx,gy,11+Math.sin(w.t*0.2+1)*2,Math.PI,0);cx.stroke();
   }
   for(const pn of pans)drawSprite(PAN,pn.x-8,pn.y-2,pn.dir<0);
   for(const rt of rotis)drawSprite(ROTI,rt.x-3,rt.y-3,false,rt.rot);
@@ -1317,10 +1285,10 @@ function drawFX(){
   }
 }
 function drawHUD(){
-  for(let i=0;i<3;i++)cx.drawImage(i<hearts?HEART:HEART_E,4+i*9,4);
+  for(let i=0;i<5;i++)cx.drawImage(i<hearts?HEART:HEART_E,4+i*9,4);
   cx.drawImage(PINE,4,12);
   outText(cx,'X'+pineCount,14,14,'#ffd23f');
-  for(let i=0;i<5;i++){
+  for(let i=0;i<3;i++){
     cx.fillStyle=i<pineMeter?'#ffd23f':'rgba(20,16,40,0.55)';
     cx.fillRect(4+i*5,24,4,4);
   }
