@@ -9,6 +9,10 @@ pans to rescue her family from her mother-in-law.
 
 - One file, zero dependencies: `index.html` (HTML5 canvas + WebAudio, all art
   and music generated in code).
+- Optional real artwork: commit images as `art/title.png` (title screen
+  background) and `art/family.png` (post-rescue photo) — the game detects and
+  uses them automatically, falling back to drawn scenes if absent. Keep them
+  ~1000px wide or less for fast loads.
 - Mobile: drag on the left half to move, JUMP / PAN buttons on the right
   (tapping the right half also jumps).
 - Desktop: arrows / AD to move, Space to jump, X or F to throw pans.
