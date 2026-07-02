@@ -9,10 +9,14 @@ pans to rescue her family from her mother-in-law.
 
 - One file, zero dependencies: `index.html` (HTML5 canvas + WebAudio, all art
   and music generated in code).
-- Optional real artwork: commit images as `art/title.png` (title screen
-  background) and `art/family.png` (post-rescue photo) — the game detects and
-  uses them automatically, falling back to drawn scenes if absent. Keep them
-  ~1000px wide or less for fast loads.
+- **Your own title / ending art:** commit two images to an `art/` folder in
+  the repo root — `art/title.png` (used full-screen as the title background,
+  with the RUN, ZARNA, RUN! marquee and menu text drawn on top) and
+  `art/family.png` (shown full-screen after the rescue, before the score). The
+  game auto-detects them on load and falls back to drawn scenes if they're
+  absent. Easiest way: on GitHub, **Add file -> Upload files**, drag the two
+  PNGs into a folder named `art`, commit. They load with a `?v=1` cache-buster,
+  so if you replace one later, bump the version in `index.html`.
 - Mobile: drag on the left half to move, JUMP / PAN buttons on the right
   (tapping the right half also jumps).
 - Desktop: arrows / AD to move, Space to jump, X or F to throw pans.
