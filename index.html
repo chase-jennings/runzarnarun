@@ -22,7 +22,7 @@ let VW=BASE_W, VH=BASE_H, ZOOM=2;
 // ============ OPTIONAL REAL ARTWORK (auto-used if committed to repo) ============
 const ART={};
 // title = repo-root intro2.png; family (optional) = repo-root family.png
-[['title','intro2.png?v=1'],['family','family.png?v=1']].forEach(([n,src])=>{const im=new Image();im.onload=()=>{ART[n]=im;};im.src=src;});
+[['title','intro2.jpg?v=2'],['family','family.png?v=1']].forEach(([n,src])=>{const im=new Image();im.onload=()=>{ART[n]=im;};im.src=src;});
 function drawCover(im){
   const s=Math.max(VW/im.width,VH/im.height), w=im.width*s, h=im.height*s;
   cx.drawImage(im,(VW-w)/2,(VH-h)/2,w,h);
@@ -68,8 +68,8 @@ const touches={}; // id -> {sx,sy,x,y,zone}
 let joyId=null, joyBase=null, joyNub=null, joyDX=0;
 let jumpBtnId=null, fireBtnId=null;
 function btnRects(){
-  const jr=VH-32, jx=VW-36, fx=VW-96;
-  return {jump:{x:jx,y:jr,r:27},fire:{x:fx,y:jr,r:23}};
+  const jr=VH-30, jx=VW-32, fx=VW-74;
+  return {jump:{x:jx,y:jr,r:20},fire:{x:fx,y:jr,r:16}};
 }
 function tpos(t){const r=cv.getBoundingClientRect();return{x:(t.clientX-r.left)/ZOOM,y:(t.clientY-r.top)/ZOOM};}
 cv.addEventListener('touchstart',e=>{
@@ -1311,19 +1311,14 @@ function drawHUD(){
       cx.globalAlpha=1;
     }
     const b=btnRects();
-    // JUMP button — green disc, dark ring, up-arrow, bold label
-    roundBtn(b.jump.x,b.jump.y,b.jump.r,'#2fbf3f','#0c3a10');
-    cx.fillStyle='#fff';
-    cx.beginPath();cx.moveTo(b.jump.x,b.jump.y-11);cx.lineTo(b.jump.x-8,b.jump.y-2);cx.lineTo(b.jump.x+8,b.jump.y-2);cx.closePath();cx.fill();
-    cx.fillRect(b.jump.x-3,b.jump.y-3,6,6);
-    outText(cx,'JUMP',b.jump.x-textW('JUMP')/2,b.jump.y+5,'#fff','#0c3a10');
-    // FIRE button — orange disc, dark ring, skillet icon, bold label
-    roundBtn(b.fire.x,b.fire.y,b.fire.r,'#ff9a2e','#5a2f00');
-    cx.fillStyle='#c9ccd2';cx.beginPath();cx.arc(b.fire.x-2,b.fire.y-4,6,0,7);cx.fill();
-    cx.fillStyle='#3a3f46';cx.beginPath();cx.arc(b.fire.x-2,b.fire.y-4,4,0,7);cx.fill();
-    cx.fillStyle='#6b3b1f';cx.fillRect(b.fire.x+4,b.fire.y-5,8,2);
-    outText(cx,'PAN',b.fire.x-textW('PAN')/2,b.fire.y+5,'#fff','#5a2f00');
-    // first-run hints: drag-to-move on the left, double-jump note over JUMP
+    // simple translucent discs (original look), with larger + sharper 2x labels
+    cx.globalAlpha=0.45;
+    cx.fillStyle='#7dff7d';cx.beginPath();cx.arc(b.jump.x,b.jump.y,b.jump.r,0,7);cx.fill();
+    cx.fillStyle='#ffd23f';cx.beginPath();cx.arc(b.fire.x,b.fire.y,b.fire.r,0,7);cx.fill();
+    cx.globalAlpha=1;
+    bigText('JUMP',Math.round(b.jump.x-(textW('JUMP')+2)),Math.round(b.jump.y-7),2,'#0c3a10','#eafff0');
+    bigText('PAN',Math.round(b.fire.x-(textW('PAN')+2)),Math.round(b.fire.y-7),2,'#5a2f00','#fff2d6');
+    // first-run hints: drag-to-move on the left, double-jump note along the bottom
     if(playHintT>0&&!joyBase){
       const a=Math.min(1,playHintT/40);cx.globalAlpha=a;
       const hx=Math.round(VW*0.22), hy=VH-30;
@@ -1336,11 +1331,6 @@ function drawHUD(){
       outText(cx,'TAP JUMP TWICE TO DOUBLE JUMP',Math.round((VW-textW('TAP JUMP TWICE TO DOUBLE JUMP'))/2),VH-12,'#ffe9a0','#1a1028');
     }
   }
-}
-function roundBtn(bx,by,r,fill,ring){
-  cx.globalAlpha=0.6;cx.fillStyle=fill;cx.beginPath();cx.arc(bx,by,r,0,7);cx.fill();
-  cx.globalAlpha=0.95;cx.lineWidth=2;cx.strokeStyle=ring;cx.beginPath();cx.arc(bx,by,r,0,7);cx.stroke();
-  cx.globalAlpha=1;
 }
 
 // ============ SCENES ============
