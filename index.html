@@ -68,8 +68,8 @@ const touches={}; // id -> {sx,sy,x,y,zone}
 let joyId=null, joyBase=null, joyNub=null, joyDX=0;
 let jumpBtnId=null, fireBtnId=null;
 function btnRects(){
-  const jr=VH-30, jx=VW-32, fx=VW-72;
-  return {jump:{x:jx,y:jr,r:20},fire:{x:fx,y:jr,r:15}};
+  const jr=VH-32, jx=VW-36, fx=VW-96;
+  return {jump:{x:jx,y:jr,r:27},fire:{x:fx,y:jr,r:23}};
 }
 function tpos(t){const r=cv.getBoundingClientRect();return{x:(t.clientX-r.left)/ZOOM,y:(t.clientY-r.top)/ZOOM};}
 cv.addEventListener('touchstart',e=>{
@@ -797,14 +797,14 @@ let state='TITLE', frame=0, sceneT=0;
 let player, ents, pans, rotis, taxis, waves, pops, parts, mil;
 let score=0, pineCount=0, hearts=5, best=+(localStorage.getItem('zarnaBest')||0);
 let lastCP=-1, camX=0, camY=0, lastSafe={x:32,y:GROUND*TILE-24};
-let micT=0, chaiT=0, invT=0, giantT=0, pineMeter=0, levelTime=0, giftBoxes={}, brokenCrates={};
+let micT=0, chaiT=0, invT=0, giantT=0, pineMeter=0, levelTime=0, playHintT=0, giftBoxes={}, brokenCrates={};
 let milBubble=null; // {text,x,y,t}
-function newPlayer(x,y){return{x,y,vx:0,vy:0,w:10,h:22,dir:1,grounded:false,coyote:0,jbuf:0,anim:0,throwT:0,alive:true};}
+function newPlayer(x,y){return{x,y,vx:0,vy:0,w:10,h:22,dir:1,grounded:false,coyote:0,jbuf:0,airJumps:0,anim:0,throwT:0,alive:true};}
 function resetRun(fromCP){
   ents=spawnEntities();pans=[];rotis=[];waves=[];pops=[];parts=[];taxis=[];mil=null;milBubble=null;
   roads.forEach((r,i)=>taxis.push({road:r,x:(r[1]+3+i*7)*TILE,w:28,h:14,horned:false}));
   milSwoops.forEach(s=>s.done=false);
-  micT=0;chaiT=0;invT=0;giantT=0;pineMeter=0;hearts=5;
+  micT=0;chaiT=0;invT=0;giantT=0;pineMeter=0;hearts=5;playHintT=420;
   const sx=fromCP>=0?checkpoints[fromCP].x:32;
   player=newPlayer(sx,GROUND*TILE-24);
   lastSafe={x:sx,y:GROUND*TILE-24};
@@ -893,6 +893,7 @@ function bumpTile(tx,ty){ // player head hit tile
 // ============ UPDATE: PLAY ============
 function updatePlay(){
   levelTime++;
+  if(playHintT>0){playHintT--;if(inputDir())playHintT=Math.min(playHintT,24);}
   const p=player;
   const spd=(chaiT>0?2.1:1.4)*(micT>0?1.15:1);
   const d=inputDir();
@@ -902,8 +903,12 @@ function updatePlay(){
   // jump buffer & coyote
   if(jumpPressed){p.jbuf=8;jumpPressed=false;}
   else if(p.jbuf>0)p.jbuf--;
-  if(p.grounded)p.coyote=7;else if(p.coyote>0)p.coyote--;
-  if(p.jbuf>0&&p.coyote>0){p.vy=-5.1;p.coyote=0;p.jbuf=0;p.grounded=false;SFX.jump();}
+  if(p.grounded){p.coyote=7;p.airJumps=1;}else if(p.coyote>0)p.coyote--;
+  if(p.jbuf>0&&(p.coyote>0||p.airJumps>0)){
+    if(p.coyote>0){p.vy=-5.1;p.coyote=0;}            // ground / coyote jump
+    else{p.vy=-4.7;p.airJumps--;puff(p.x+p.w/2,p.y+p.h,'#d8f4ff',6);} // mid-air double jump
+    p.jbuf=0;p.grounded=false;SFX.jump();
+  }
   if(!inputJumpHeld()&&p.vy<-2.0)p.vy=-2.0; // variable height
   p.vy=Math.min(p.vy+0.24,5);
   const r=moveEntity(p);
@@ -1298,20 +1303,44 @@ function drawHUD(){
   else if(chaiT>0){centerText(cx,'CHAI RUSH '+Math.ceil(chaiT/60),4,'#e8b090');}
   // touch controls
   if('ontouchstart' in window){
-    cx.globalAlpha=0.45;
+    // live joystick under the thumb
     if(joyBase){
-      cx.fillStyle='#fff';cx.beginPath();cx.arc(joyBase.x,joyBase.y,14,0,7);cx.stroke();
-      cx.strokeStyle='#fff';cx.beginPath();cx.arc(joyBase.x,joyBase.y,14,0,7);cx.stroke();
-      cx.beginPath();cx.arc(joyNub.x,joyNub.y,7,0,7);cx.fill();
+      cx.globalAlpha=0.5;cx.lineWidth=2;cx.strokeStyle='#fff';
+      cx.beginPath();cx.arc(joyBase.x,joyBase.y,15,0,7);cx.stroke();
+      cx.fillStyle='#fff';cx.beginPath();cx.arc(joyNub.x,joyNub.y,8,0,7);cx.fill();
+      cx.globalAlpha=1;
     }
     const b=btnRects();
-    cx.fillStyle='#7dff7d';cx.beginPath();cx.arc(b.jump.x,b.jump.y,b.jump.r,0,7);cx.fill();
-    cx.fillStyle='#ffd23f';cx.beginPath();cx.arc(b.fire.x,b.fire.y,b.fire.r,0,7);cx.fill();
-    cx.globalAlpha=0.9;
-    outText(cx,'JUMP',b.jump.x-textW('JUMP')/2,b.jump.y-2,'#1a4a1a','#fff0');
-    outText(cx,'PAN',b.fire.x-textW('PAN')/2,b.fire.y-2,'#6a4a00','#fff0');
-    cx.globalAlpha=1;
+    // JUMP button — green disc, dark ring, up-arrow, bold label
+    roundBtn(b.jump.x,b.jump.y,b.jump.r,'#2fbf3f','#0c3a10');
+    cx.fillStyle='#fff';
+    cx.beginPath();cx.moveTo(b.jump.x,b.jump.y-11);cx.lineTo(b.jump.x-8,b.jump.y-2);cx.lineTo(b.jump.x+8,b.jump.y-2);cx.closePath();cx.fill();
+    cx.fillRect(b.jump.x-3,b.jump.y-3,6,6);
+    outText(cx,'JUMP',b.jump.x-textW('JUMP')/2,b.jump.y+5,'#fff','#0c3a10');
+    // FIRE button — orange disc, dark ring, skillet icon, bold label
+    roundBtn(b.fire.x,b.fire.y,b.fire.r,'#ff9a2e','#5a2f00');
+    cx.fillStyle='#c9ccd2';cx.beginPath();cx.arc(b.fire.x-2,b.fire.y-4,6,0,7);cx.fill();
+    cx.fillStyle='#3a3f46';cx.beginPath();cx.arc(b.fire.x-2,b.fire.y-4,4,0,7);cx.fill();
+    cx.fillStyle='#6b3b1f';cx.fillRect(b.fire.x+4,b.fire.y-5,8,2);
+    outText(cx,'PAN',b.fire.x-textW('PAN')/2,b.fire.y+5,'#fff','#5a2f00');
+    // first-run hints: drag-to-move on the left, double-jump note over JUMP
+    if(playHintT>0&&!joyBase){
+      const a=Math.min(1,playHintT/40);cx.globalAlpha=a;
+      const hx=Math.round(VW*0.22), hy=VH-30;
+      cx.lineWidth=2;cx.strokeStyle='#fff';cx.beginPath();cx.arc(hx,hy,13,0,7);cx.stroke();
+      cx.fillStyle='#fff';
+      cx.beginPath();cx.moveTo(hx-20,hy);cx.lineTo(hx-13,hy-5);cx.lineTo(hx-13,hy+5);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(hx+20,hy);cx.lineTo(hx+13,hy-5);cx.lineTo(hx+13,hy+5);cx.closePath();cx.fill();
+      cx.globalAlpha=1;
+      outText(cx,'DRAG TO MOVE',hx-textW('DRAG TO MOVE')/2,hy-26,a>0.5?'#fff':'#fff8','#1a1028');
+      outText(cx,'TAP JUMP TWICE TO DOUBLE JUMP',Math.round((VW-textW('TAP JUMP TWICE TO DOUBLE JUMP'))/2),VH-12,'#ffe9a0','#1a1028');
+    }
   }
+}
+function roundBtn(bx,by,r,fill,ring){
+  cx.globalAlpha=0.6;cx.fillStyle=fill;cx.beginPath();cx.arc(bx,by,r,0,7);cx.fill();
+  cx.globalAlpha=0.95;cx.lineWidth=2;cx.strokeStyle=ring;cx.beginPath();cx.arc(bx,by,r,0,7);cx.stroke();
+  cx.globalAlpha=1;
 }
 
 // ============ SCENES ============
